@@ -3,21 +3,20 @@ from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 from data import (
     CANCEL_BUTTON_CLICK,
     CANCEL_BUTTON_TEXT,
+    CANCEL_SHUTDOWN,
+    CANCEL_SHUTDOWN_TEXT,
     CHANGE_BRIGHTNESS,
+    CHANGE_SHUTDOWN,
     CHANGE_VOLUME,
     MONITOR,
     MONITOR_BUTTON_CLICK,
     MUTE_VOLUME_TEXT,
     NIGHT_SWITCH_TEXT,
+    POWER,
+    POWER_BUTTON_CLICK,
+    SHUTDOWN_NOW,
     VOLUME,
     VOLUME_BUTTON_CLICK,
-POWER_BUTTON_CLICK,
-POWER,
-SHUTDOWN_NOW,
-CHANGE_SHUTDOWN,
-CANCEL_SHUTDOWN_TEXT,
-CANCEL_SHUTDOWN
-
 )
 
 cancel_button = [
@@ -41,9 +40,7 @@ def get_user_buttons():
                 text=MONITOR, callback_data=MONITOR_BUTTON_CLICK
             )
         ],
-        [
-            InlineKeyboardButton(text=POWER, callback_data=POWER_BUTTON_CLICK)
-        ]
+        [InlineKeyboardButton(text=POWER, callback_data=POWER_BUTTON_CLICK)],
     ]
     return InlineKeyboardMarkup(inline_keyboard=buttons)
 
@@ -117,21 +114,31 @@ def get_change_shutdown_buttons():
             text=SHUTDOWN_NOW, callback_data=CHANGE_SHUTDOWN + "1"
         )
     ]
-    first_column_shutdown = [InlineKeyboardButton(
+    first_column_shutdown = [
+        InlineKeyboardButton(
             text=str(item) + " мин", callback_data=CHANGE_SHUTDOWN + str(item)
-        ) for item in range(10, 30, 5)
+        )
+        for item in range(10, 30, 5)
     ]
-    second_column_shutdown = [InlineKeyboardButton(
+    second_column_shutdown = [
+        InlineKeyboardButton(
             text=str(item) + " мин", callback_data=CHANGE_SHUTDOWN + str(item)
-        ) for item in range(30, 61, 10)
+        )
+        for item in range(30, 61, 10)
     ]
-    third_column_shutdown = [InlineKeyboardButton(
-        text=str(item) + " мин", callback_data=CHANGE_SHUTDOWN + str(item)
-    ) for item in range(60, 151, 30)
+    third_column_shutdown = [
+        InlineKeyboardButton(
+            text=str(item) + " мин", callback_data=CHANGE_SHUTDOWN + str(item)
+        )
+        for item in range(60, 151, 30)
     ]
     keyboard = [shutdown_now]
     for item in range(4):
-        row = [first_column_shutdown[item], second_column_shutdown[item], third_column_shutdown[item]]
+        row = [
+            first_column_shutdown[item],
+            second_column_shutdown[item],
+            third_column_shutdown[item],
+        ]
         keyboard.append(row)
     keyboard.append(cancel_shutdown)
     keyboard.append(cancel_button)
