@@ -23,9 +23,9 @@ CHANGE_VOLUME = "change_volume_"
 MUTE_VOLUME_TEXT = "Выключить звук"
 
 SUCSESS_TEXT = (
-    "Операция выполнена!\n"
-    "Уровень громкости сейчас {volume}%\n"
-    "Выбери функцию:\n"
+    "Операция выполнена!\n\n"
+    "Уровень громкости сейчас {volume}%\n\n"
+    "Выбери функцию:\n\n"
 )
 SUCSESS_VOLUME_TEXT = "Уровень громкости изменен на: {volume}%"
 
@@ -45,7 +45,7 @@ CHANGE_TO_BRIGHTNESS = (
 
 SUCSESS_BRIGHTNESS_TEXT = "Уровень громкости изменен на: {brightness}%"
 SUCSESS_BRIGHTNESS_MESSAGE = (
-    "Операция выполнена!\n"
-    "Уровень яркости сейчас {brightness}%\n"
-    "Выбери функцию:\n"
+    "Операция выполнена!\n\n"
+    "Уровень яркости сейчас {brightness}%\n\n"
+    "Выбери функцию:\n\n"
 )
