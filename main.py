@@ -7,6 +7,7 @@ from dotenv import load_dotenv
 
 from bot.handlers import register_handlers
 from data import TELEGRAM_BOT_TOKEN
+from system.power_management import cancel_shutdown_timer
 
 logging.basicConfig(level=logging.INFO)
 
@@ -22,6 +23,7 @@ register_handlers(dp)
 
 
 async def main():
+    cancel_shutdown_timer()
 
     try:
         await dp.start_polling(bot)
