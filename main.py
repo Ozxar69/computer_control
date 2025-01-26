@@ -5,9 +5,10 @@ import os
 from aiogram import Bot, Dispatcher
 from dotenv import load_dotenv
 
+from bot.handlers import register_handlers
 from data import TELEGRAM_BOT_TOKEN
 
-# logging.basicConfig(level=logging.INFO)
+logging.basicConfig(level=logging.INFO)
 
 load_dotenv()
 TOKEN = os.getenv(TELEGRAM_BOT_TOKEN)
@@ -16,7 +17,6 @@ TOKEN = os.getenv(TELEGRAM_BOT_TOKEN)
 bot = Bot(token=TOKEN)
 dp = Dispatcher()
 
-from bot.handlers import register_handlers
 
 register_handlers(dp)
 
