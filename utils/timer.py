@@ -1,4 +1,3 @@
-
 from datetime import datetime, timedelta
 
 
@@ -38,8 +37,4 @@ class Timer:
             return False
 
 
-# Пример использования
 timer = Timer()
-
-
-

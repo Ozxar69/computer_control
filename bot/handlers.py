@@ -1,50 +1,55 @@
 from aiogram import types
 from aiogram.filters import Command
 
+from admin import check_user
 from bot.buttons import (
+    get_cancel_shutdown_buttons,
     get_change_brightness_buttons,
+    get_change_shutdown_buttons,
     get_change_volume_buttons,
     get_user_buttons,
-get_change_shutdown_buttons,
-get_cancel_shutdown_buttons,
 )
-from utils.utils import finish_time
-from utils.timer import timer
 from data import (
+    ACCESS_DENIED,
     CANCEL_BUTTON_CLICK,
     CANCEL_CONFIRM_TEXT,
+    CANCEL_SHUTDOWN,
     CHANGE_BRIGHTNESS,
+    CHANGE_SHUTDOWN,
     CHANGE_TO_BRIGHTNESS,
+    CHANGE_TO_POWER,
+    CHANGE_TO_POWER_TIMER,
     CHANGE_TO_VOLUME,
     CHANGE_VOLUME,
     FALSE_TEXT,
     MONITOR,
     MONITOR_BUTTON_CLICK,
+    POWER,
+    POWER_BUTTON_CLICK,
     START_BUTTON,
     START_REPLAY,
     SUCCESS_BRIGHTNESS_MESSAGE,
     SUCCESS_BRIGHTNESS_TEXT,
+    SUCCESS_CANCEL_SHUTDOWN_MESSAGE,
+    SUCCESS_CANCEL_SHUTDOWN_TEXT,
+    SUCCESS_SHUTDOWN_MESSAGE,
+    SUCCESS_SHUTDOWN_TEXT,
     SUCCESS_TEXT,
     SUCCESS_VOLUME_TEXT,
     VOLUME,
     VOLUME_BUTTON_CLICK,
-POWER_BUTTON_CLICK,
-POWER,
-CHANGE_TO_POWER,
-CHANGE_TO_POWER_TIMER,
-ACCESS_DENIED,
-CHANGE_SHUTDOWN,
-SUCCESS_SHUTDOWN_TEXT,
-SUCCESS_SHUTDOWN_MESSAGE,
-CANCEL_SHUTDOWN,
-SUCCESS_CANCEL_SHUTDOWN_MESSAGE,
-SUCCESS_CANCEL_SHUTDOWN_TEXT,
-
 )
-from system.power_management import check_shutdown_status, set_shutdown_timer, cancel_shutdown_timer
 from screen.screen_control import get_brightness, set_brightness
+from system.power_management import (
+    cancel_shutdown_timer,
+    check_shutdown_status,
+    set_shutdown_timer,
+)
+from utils.timer import timer
+from utils.utils import finish_time
 from volume.volume_control import get_volume, set_volume
-from admin import check_user
+
+finish = ""
 
 
 def register_handlers(dp):
@@ -139,7 +144,6 @@ def register_handlers(dp):
         shutdown_status = check_shutdown_status()
         await callback_query.answer(POWER)
         await callback_query.message.delete()
-        print(shutdown_status)
         if not shutdown_status:
 
             reply_markup = get_change_shutdown_buttons()
@@ -150,29 +154,27 @@ def register_handlers(dp):
             reply_markup = get_cancel_shutdown_buttons()
 
             await callback_query.message.answer(
-                CHANGE_TO_POWER_TIMER.format(time=timer.check_timer()),
-                reply_markup=reply_markup
+                CHANGE_TO_POWER_TIMER.format(
+                    time=finish, minutes=timer.check_timer()
+                ),
+                reply_markup=reply_markup,
             )
-
 
     @dp.callback_query(lambda c: c.data.startswith(CHANGE_SHUTDOWN))
     async def change_shutdown(callback_query: types.CallbackQuery):
+        global finish
         shutdown_time = callback_query.data.split("_")[-1]
-        print(shutdown_time)
         await callback_query.message.delete()
 
         set_shutdown = set_shutdown_timer(int(shutdown_time))
         timer.start_timer(int(shutdown_time))
         reply_markup = get_user_buttons()
         if set_shutdown:
-            await callback_query.answer(
-                SUCCESS_SHUTDOWN_TEXT
-            )
+            await callback_query.answer(SUCCESS_SHUTDOWN_TEXT)
             finish = finish_time(int(shutdown_time))
+
             await callback_query.message.answer(
-                text=SUCCESS_SHUTDOWN_MESSAGE.format(
-                    finish_time=finish
-                ),
+                text=SUCCESS_SHUTDOWN_MESSAGE.format(finish_time=finish),
                 reply_markup=reply_markup,
             )
         else:
@@ -187,9 +189,7 @@ def register_handlers(dp):
         reply_markup = get_user_buttons()
         cancel = cancel_shutdown_timer()
         if cancel:
-            await callback_query.answer(
-                SUCCESS_CANCEL_SHUTDOWN_TEXT
-            )
+            await callback_query.answer(SUCCESS_CANCEL_SHUTDOWN_TEXT)
             await callback_query.message.answer(
                 text=SUCCESS_CANCEL_SHUTDOWN_MESSAGE,
                 reply_markup=reply_markup,
