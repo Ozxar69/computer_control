@@ -41,25 +41,25 @@ def register_handlers(dp):
     async def handle_button_click(callback_query: types.CallbackQuery):
         volume = get_volume()
         await callback_query.answer(VOLUME)
-        await callback_query.message.edit_reply_markup(None)
+        await callback_query.message.delete()
         reply_markup = get_change_volume_buttons()
-        await callback_query.message.reply(
+        await callback_query.message.answer(
             CHANGE_TO_VOLUME.format(volume=volume), reply_markup=reply_markup
         )
 
     @dp.callback_query(lambda c: c.data == CANCEL_BUTTON_CLICK)
     async def cancel_button(callback_query: types.CallbackQuery):
         await callback_query.answer(CANCEL_CONFIRM_TEXT)
-        await callback_query.message.edit_reply_markup(None)
+        await callback_query.message.delete()
         reply_markup = get_user_buttons()
-        await callback_query.message.reply(
+        await callback_query.message.answer(
             text=START_REPLAY, reply_markup=reply_markup
         )
 
     @dp.callback_query(lambda c: c.data.startswith(CHANGE_VOLUME))
     async def change_volume(callback_query: types.CallbackQuery):
         volume_level = callback_query.data.split("_")[-1]
-        await callback_query.message.edit_reply_markup(None)
+        await callback_query.message.delete()
         changing_volume = set_volume(int(volume_level))
         reply_markup = get_user_buttons()
         if changing_volume:
@@ -68,13 +68,13 @@ def register_handlers(dp):
                 SUCSESS_VOLUME_TEXT.format(volume=volume_level)
             )
 
-            await callback_query.message.reply(
+            await callback_query.message.answer(
                 text=SUCSESS_TEXT.format(volume=volume_level),
                 reply_markup=reply_markup,
             )
         else:
             await callback_query.answer(FALSE_TEXT)
-            await callback_query.message.reply(
+            await callback_query.message.answer(
                 text=FALSE_TEXT, reply_markup=reply_markup
             )
 
@@ -82,9 +82,9 @@ def register_handlers(dp):
     async def handle_button_click(callback_query: types.CallbackQuery):
         brightness = get_brightness()
         await callback_query.answer(MONITOR)
-        await callback_query.message.edit_reply_markup(None)
+        await callback_query.message.delete()
         reply_markup = get_change_brightness_buttons()
-        await callback_query.message.reply(
+        await callback_query.message.answer(
             CHANGE_TO_BRIGHTNESS.format(brightness=brightness[0]),
             reply_markup=reply_markup,
         )
@@ -92,7 +92,7 @@ def register_handlers(dp):
     @dp.callback_query(lambda c: c.data.startswith(CHANGE_BRIGHTNESS))
     async def change_volume(callback_query: types.CallbackQuery):
         brightness_level = callback_query.data.split("_")[-1]
-        await callback_query.message.edit_reply_markup(None)
+        await callback_query.message.delete()
         changing_brightness = set_brightness(int(brightness_level))
         reply_markup = get_user_buttons()
         if changing_brightness:
@@ -101,7 +101,7 @@ def register_handlers(dp):
                 SUCSESS_BRIGHTNESS_TEXT.format(brightness=brightness_level[0])
             )
 
-            await callback_query.message.reply(
+            await callback_query.message.answer(
                 text=SUCSESS_BRIGHTNESS_MESSAGE.format(
                     brightness=brightness_level[0]
                 ),
@@ -109,6 +109,6 @@ def register_handlers(dp):
             )
         else:
             await callback_query.answer(FALSE_TEXT)
-            await callback_query.message.reply(
+            await callback_query.message.answer(
                 text=FALSE_TEXT, reply_markup=reply_markup
             )
