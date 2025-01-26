@@ -11,11 +11,23 @@ from data import (
     NIGHT_SWITCH_TEXT,
     VOLUME,
     VOLUME_BUTTON_CLICK,
+POWER_BUTTON_CLICK,
+POWER,
+SHUTDOWN_NOW,
+CHANGE_SHUTDOWN,
+CANCEL_SHUTDOWN_TEXT,
+CANCEL_SHUTDOWN
+
 )
 
 cancel_button = [
     InlineKeyboardButton(
         text=CANCEL_BUTTON_TEXT, callback_data=CANCEL_BUTTON_CLICK
+    )
+]
+cancel_shutdown = [
+    InlineKeyboardButton(
+        text=CANCEL_SHUTDOWN_TEXT, callback_data=CANCEL_SHUTDOWN
     )
 ]
 
@@ -29,6 +41,9 @@ def get_user_buttons():
                 text=MONITOR, callback_data=MONITOR_BUTTON_CLICK
             )
         ],
+        [
+            InlineKeyboardButton(text=POWER, callback_data=POWER_BUTTON_CLICK)
+        ]
     ]
     return InlineKeyboardMarkup(inline_keyboard=buttons)
 
@@ -92,5 +107,39 @@ def get_change_brightness_buttons():
         row = [buttons[i], buttons[i + 2]]
         keyboard.append(row)
     keyboard.append(cancel_button)
+    reply_markup = InlineKeyboardMarkup(inline_keyboard=keyboard)
+    return reply_markup
+
+
+def get_change_shutdown_buttons():
+    shutdown_now = [
+        InlineKeyboardButton(
+            text=SHUTDOWN_NOW, callback_data=CHANGE_SHUTDOWN + "1"
+        )
+    ]
+    first_column_shutdown = [InlineKeyboardButton(
+            text=str(item) + " мин", callback_data=CHANGE_SHUTDOWN + str(item)
+        ) for item in range(10, 30, 5)
+    ]
+    second_column_shutdown = [InlineKeyboardButton(
+            text=str(item) + " мин", callback_data=CHANGE_SHUTDOWN + str(item)
+        ) for item in range(30, 61, 10)
+    ]
+    third_column_shutdown = [InlineKeyboardButton(
+        text=str(item) + " мин", callback_data=CHANGE_SHUTDOWN + str(item)
+    ) for item in range(60, 151, 30)
+    ]
+    keyboard = [shutdown_now]
+    for item in range(4):
+        row = [first_column_shutdown[item], second_column_shutdown[item], third_column_shutdown[item]]
+        keyboard.append(row)
+    keyboard.append(cancel_shutdown)
+    keyboard.append(cancel_button)
+    reply_markup = InlineKeyboardMarkup(inline_keyboard=keyboard)
+    return reply_markup
+
+
+def get_cancel_shutdown_buttons():
+    keyboard = [cancel_shutdown, cancel_button]
     reply_markup = InlineKeyboardMarkup(inline_keyboard=keyboard)
     return reply_markup
