@@ -8,6 +8,8 @@ from data import (
     CHANGE_BRIGHTNESS,
     CHANGE_SHUTDOWN,
     CHANGE_VOLUME,
+    KEYBOARD,
+    KEYBOARD_BUTTON_CLICK,
     MONITOR,
     MONITOR_BUTTON_CLICK,
     MUTE_VOLUME_TEXT,
@@ -15,6 +17,8 @@ from data import (
     POWER,
     POWER_BUTTON_CLICK,
     SHUTDOWN_NOW,
+    SPACE_BUTTON_TEXT,
+    SPACE_CLICK,
     VOLUME,
     VOLUME_BUTTON_CLICK,
 )
@@ -41,6 +45,11 @@ def get_user_buttons():
             )
         ],
         [InlineKeyboardButton(text=POWER, callback_data=POWER_BUTTON_CLICK)],
+        [
+            InlineKeyboardButton(
+                text=KEYBOARD, callback_data=KEYBOARD_BUTTON_CLICK
+            )
+        ],
     ]
     return InlineKeyboardMarkup(inline_keyboard=buttons)
 
@@ -65,8 +74,7 @@ def get_change_volume_buttons():
         )
     ]
 
-    keyboard = []
-    keyboard.append(first_row)
+    keyboard = [first_row]
     for i in range(5):
         row = []
         if i < len(first_block):
@@ -130,7 +138,7 @@ def get_change_shutdown_buttons():
         InlineKeyboardButton(
             text=str(item) + " мин", callback_data=CHANGE_SHUTDOWN + str(item)
         )
-        for item in range(60, 151, 30)
+        for item in range(90, 181, 30)
     ]
     keyboard = [shutdown_now]
     for item in range(4):
@@ -148,5 +156,14 @@ def get_change_shutdown_buttons():
 
 def get_cancel_shutdown_buttons():
     keyboard = [cancel_shutdown, cancel_button]
+    reply_markup = InlineKeyboardMarkup(inline_keyboard=keyboard)
+    return reply_markup
+
+
+def get_keyboard_buttons():
+    space_button = [
+        InlineKeyboardButton(text=SPACE_BUTTON_TEXT, callback_data=SPACE_CLICK)
+    ]
+    keyboard = [space_button, cancel_button]
     reply_markup = InlineKeyboardMarkup(inline_keyboard=keyboard)
     return reply_markup

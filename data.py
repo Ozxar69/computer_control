@@ -67,7 +67,7 @@ SUCCESS_SHUTDOWN_TEXT = "Таймер успешно установлен!"
 
 ADMIN_IDS = "ADMIN_IDS"
 
-ACCESS_DENIED = "Доступ запрещен."
+ACCESS_DENIED = "Access denied."
 
 SUCCESS_SHUTDOWN_MESSAGE = (
     "Операция выполнена!\n\n"
@@ -77,9 +77,7 @@ SUCCESS_SHUTDOWN_MESSAGE = (
 
 SUCCESS_CANCEL_SHUTDOWN_TEXT = "Выключение отменено!"
 
-SUCCESS_CANCEL_SHUTDOWN_MESSAGE = (
-    "Выключение отменено\n\n" "Выбери функцию:\n\n"
-)
+SUCCESS_CANCEL_SHUTDOWN_MESSAGE = "Выключение отменено\n\nВыбери функцию:\n\n"
 
 CHANGE_TO_POWER_TIMER = (
     "Меню управления электропитанием\n"
@@ -87,4 +85,14 @@ CHANGE_TO_POWER_TIMER = (
     "Компьютер выключится в {time}\n"
     "Осталось примерно - {minutes}\n\n"
     "Можешь отменить\n"
+)
+KEYBOARD = "⌨️Клавиатура"
+KEYBOARD_BUTTON_CLICK = "keyboard"
+SPACE_BUTTON_TEXT = "Пауза/продолжить"
+SPACE_CLICK = "space"
+
+CHANGE_TO_KEYBOARD = (
+    "Меню управления клавиатурой\n\n"
+    "Можешь управлять нажатием клавиш\n"
+    "Если активно видео, то пробелом можно нажать на паузу или возобновить его"
 )
