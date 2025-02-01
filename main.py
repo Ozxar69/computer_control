@@ -23,10 +23,10 @@ register_handlers(dp)
 
 
 async def main():
-    cancel_shutdown_timer()
 
     try:
         await dp.start_polling(bot)
+        cancel_shutdown_timer()
     except Exception as e:
         logging.error(f"Error occurred: {e}")
 

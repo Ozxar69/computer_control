@@ -1,31 +1,36 @@
 from aiogram import types
 from aiogram.filters import Command
 
-from admin import check_user
+from admin import acsess
 from bot.buttons import (
     get_cancel_shutdown_buttons,
     get_change_brightness_buttons,
     get_change_shutdown_buttons,
     get_change_volume_buttons,
+    get_keyboard_buttons,
     get_user_buttons,
 )
 from data import (
-    ACCESS_DENIED,
     CANCEL_BUTTON_CLICK,
     CANCEL_CONFIRM_TEXT,
     CANCEL_SHUTDOWN,
     CHANGE_BRIGHTNESS,
     CHANGE_SHUTDOWN,
     CHANGE_TO_BRIGHTNESS,
+    CHANGE_TO_KEYBOARD,
     CHANGE_TO_POWER,
     CHANGE_TO_POWER_TIMER,
     CHANGE_TO_VOLUME,
     CHANGE_VOLUME,
     FALSE_TEXT,
+    KEYBOARD,
+    KEYBOARD_BUTTON_CLICK,
     MONITOR,
     MONITOR_BUTTON_CLICK,
     POWER,
     POWER_BUTTON_CLICK,
+    SPACE_BUTTON_TEXT,
+    SPACE_CLICK,
     START_BUTTON,
     START_REPLAY,
     SUCCESS_BRIGHTNESS_MESSAGE,
@@ -39,6 +44,7 @@ from data import (
     VOLUME,
     VOLUME_BUTTON_CLICK,
 )
+from keyboard.keyboard import play_pause
 from screen.screen_control import get_brightness, set_brightness
 from system.power_management import (
     cancel_shutdown_timer,
@@ -55,15 +61,13 @@ finish = ""
 def register_handlers(dp):
 
     @dp.message(Command(START_BUTTON))
+    @acsess
     async def send_welcome(message: types.Message):
-        user_id = message.from_user.id
-        if check_user(user_id):
-            reply_markup = get_user_buttons()
-            await message.reply(START_REPLAY, reply_markup=reply_markup)
-        else:
-            await message.reply(ACCESS_DENIED)
+        reply_markup = get_user_buttons()
+        await message.reply(START_REPLAY, reply_markup=reply_markup)
 
     @dp.callback_query(lambda c: c.data == VOLUME_BUTTON_CLICK)
+    @acsess
     async def handle_button_click(callback_query: types.CallbackQuery):
         volume = get_volume()
         await callback_query.answer(VOLUME)
@@ -74,6 +78,7 @@ def register_handlers(dp):
         )
 
     @dp.callback_query(lambda c: c.data == CANCEL_BUTTON_CLICK)
+    @acsess
     async def cancel_button(callback_query: types.CallbackQuery):
         await callback_query.answer(CANCEL_CONFIRM_TEXT)
         await callback_query.message.delete()
@@ -83,6 +88,7 @@ def register_handlers(dp):
         )
 
     @dp.callback_query(lambda c: c.data.startswith(CHANGE_VOLUME))
+    @acsess
     async def change_volume(callback_query: types.CallbackQuery):
         volume_level = callback_query.data.split("_")[-1]
         await callback_query.message.delete()
@@ -105,6 +111,7 @@ def register_handlers(dp):
             )
 
     @dp.callback_query(lambda c: c.data == MONITOR_BUTTON_CLICK)
+    @acsess
     async def handle_button_click(callback_query: types.CallbackQuery):
         brightness = get_brightness()
         await callback_query.answer(MONITOR)
@@ -116,6 +123,7 @@ def register_handlers(dp):
         )
 
     @dp.callback_query(lambda c: c.data.startswith(CHANGE_BRIGHTNESS))
+    @acsess
     async def change_volume(callback_query: types.CallbackQuery):
         brightness_level = callback_query.data.split("_")[-1]
         await callback_query.message.delete()
@@ -140,6 +148,7 @@ def register_handlers(dp):
             )
 
     @dp.callback_query(lambda c: c.data == POWER_BUTTON_CLICK)
+    @acsess
     async def handle_button_click(callback_query: types.CallbackQuery):
         shutdown_status = check_shutdown_status()
         await callback_query.answer(POWER)
@@ -161,6 +170,7 @@ def register_handlers(dp):
             )
 
     @dp.callback_query(lambda c: c.data.startswith(CHANGE_SHUTDOWN))
+    @acsess
     async def change_shutdown(callback_query: types.CallbackQuery):
         global finish
         shutdown_time = callback_query.data.split("_")[-1]
@@ -184,6 +194,7 @@ def register_handlers(dp):
             )
 
     @dp.callback_query(lambda c: c.data.startswith(CANCEL_SHUTDOWN))
+    @acsess
     async def cancel_shutdown(callback_query: types.CallbackQuery):
         await callback_query.message.delete()
         reply_markup = get_user_buttons()
@@ -195,6 +206,35 @@ def register_handlers(dp):
                 reply_markup=reply_markup,
             )
         else:
+            await callback_query.answer(FALSE_TEXT)
+            await callback_query.message.answer(
+                text=FALSE_TEXT, reply_markup=reply_markup
+            )
+
+    @dp.callback_query(lambda c: c.data.startswith(KEYBOARD_BUTTON_CLICK))
+    @acsess
+    async def keyboard_click(callback_query: types.CallbackQuery):
+        await callback_query.message.delete()
+        await callback_query.answer(KEYBOARD)
+        reply_markup = get_keyboard_buttons()
+        await callback_query.message.answer(
+            CHANGE_TO_KEYBOARD,
+            reply_markup=reply_markup,
+        )
+
+    @dp.callback_query(lambda c: c.data.startswith(SPACE_CLICK))
+    @acsess
+    async def keyboard_click(callback_query: types.CallbackQuery):
+        await callback_query.message.delete()
+        await callback_query.answer(SPACE_BUTTON_TEXT)
+        if play_pause():
+            reply_markup = get_keyboard_buttons()
+            await callback_query.message.answer(
+                CHANGE_TO_KEYBOARD,
+                reply_markup=reply_markup,
+            )
+        else:
+            reply_markup = get_user_buttons()
             await callback_query.answer(FALSE_TEXT)
             await callback_query.message.answer(
                 text=FALSE_TEXT, reply_markup=reply_markup
