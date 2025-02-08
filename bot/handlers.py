@@ -213,7 +213,7 @@ def register_handlers(dp):
 
     @dp.callback_query(lambda c: c.data.startswith(KEYBOARD_BUTTON_CLICK))
     @acsess
-    async def keyboard_click(callback_query: types.CallbackQuery):
+    async def keyboard_button_click(callback_query: types.CallbackQuery):
         await callback_query.message.delete()
         await callback_query.answer(KEYBOARD)
         reply_markup = get_keyboard_buttons()
