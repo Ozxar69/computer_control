@@ -1,3 +1,5 @@
+import asyncio
+
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 
 from data import (
@@ -21,6 +23,11 @@ from data import (
     SPACE_CLICK,
     VOLUME,
     VOLUME_BUTTON_CLICK,
+    HOME_BUTTON, BACK_BUTTON_TEXT, ONLINE_ICON, OFFLINE_ICON, HOME_BUTTON_CLICK,
+    DEVICES_BUTTON_TEXT, BACK_TO_MAIN_CLICK, LIGHTS_BUTTON_TEXT,
+    OUTLETS_BUTTON_TEXT, LIGHTS_MENU_CLICK, OUTLETS_MENU_CLICK,
+    DEVICE_BUTTON_TEXT, DEVICE_CLICK_PREFIX, MAIN_SWITCH_BUTTON,
+    EXTRA_SWITCH_BUTTON
 )
 
 cancel_button = [
@@ -33,6 +40,12 @@ cancel_shutdown = [
         text=CANCEL_SHUTDOWN_TEXT, callback_data=CANCEL_SHUTDOWN
     )
 ]
+# Кнопка "Назад" (универсальная)
+back_button = [
+    InlineKeyboardButton(
+        text=BACK_BUTTON_TEXT,
+        callback_data=BACK_TO_MAIN_CLICK
+    )]
 
 
 def get_user_buttons():
@@ -49,6 +62,10 @@ def get_user_buttons():
             InlineKeyboardButton(
                 text=KEYBOARD, callback_data=KEYBOARD_BUTTON_CLICK
             )
+        ],
+        [
+            InlineKeyboardButton(text=HOME_BUTTON,
+                                 callback_data=HOME_BUTTON_CLICK)
         ],
     ]
     return InlineKeyboardMarkup(inline_keyboard=buttons)
@@ -167,3 +184,57 @@ def get_keyboard_buttons():
     keyboard = [space_button, cancel_button]
     reply_markup = InlineKeyboardMarkup(inline_keyboard=keyboard)
     return reply_markup
+
+
+async def get_main_menu_buttons():
+    buttons = [
+        [InlineKeyboardButton(text=LIGHTS_BUTTON_TEXT, callback_data=LIGHTS_MENU_CLICK)],
+        [InlineKeyboardButton(text=OUTLETS_BUTTON_TEXT, callback_data=OUTLETS_MENU_CLICK)],
+        cancel_button]
+    return InlineKeyboardMarkup(inline_keyboard=buttons)
+
+
+async def get_devices_buttons_async(devices_with_status):
+    """Генерация кнопок для конкретного типа устройств"""
+    buttons = []
+    for device, is_online in devices_with_status:
+        status_icon = ONLINE_ICON if is_online else OFFLINE_ICON
+        buttons.append([
+            InlineKeyboardButton(
+                text=DEVICE_BUTTON_TEXT.format(status=status_icon, name=device.name),
+                callback_data=f"{DEVICE_CLICK_PREFIX}{device.device_id}"
+            )
+        ])
+
+    buttons.append(back_button)
+    return InlineKeyboardMarkup(inline_keyboard=buttons)
+
+
+def create_device_control_buttons(device_info: dict):
+    buttons = []
+
+    # Основной переключатель
+    main_switch_state = "Выключить" if device_info['switches'][
+        'switch_1'] else "Включить"
+    buttons.append([InlineKeyboardButton(
+        text=MAIN_SWITCH_BUTTON.format(state=main_switch_state),
+        callback_data=f"DEVICE_TOGGLE_{device_info['device_id']}_1"
+    )])
+
+    # Дополнительный переключатель (если есть)
+    if device_info['has_switch_2']:
+        extra_switch_state = "Выключить" if device_info['switches'][
+            'switch_2'] else "Включить"
+        buttons.append([InlineKeyboardButton(
+            text=EXTRA_SWITCH_BUTTON.format(state=extra_switch_state),
+            callback_data=f"DEVICE_TOGGLE_{device_info['device_id']}_2"
+        )])
+
+    # Кнопка назад
+    buttons.append([InlineKeyboardButton(
+        text="↩️ Назад",
+        callback_data=HOME_BUTTON_CLICK
+    )])
+
+    return InlineKeyboardMarkup(inline_keyboard=buttons)
+

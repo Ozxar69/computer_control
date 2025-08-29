@@ -11,7 +11,7 @@ load_dotenv()
 ADMIN = os.getenv(ADMIN_IDS)
 
 
-def acsess(func):
+def access(func):
     @wraps(func)
     async def decorated(*args, **kwargs):
         callback_query = None
@@ -29,7 +29,6 @@ def acsess(func):
             return ACCESS_DENIED
 
         user_id = message.from_user.id
-        print(user_id)
         if user_id == int(ADMIN):
             return await func(*args, **kwargs)
         else:
