@@ -1,14 +1,17 @@
+import asyncio
+
 from aiogram import types
 from aiogram.filters import Command
 
-from admin import acsess
+from admin import access
 from bot.buttons import (
     get_cancel_shutdown_buttons,
     get_change_brightness_buttons,
     get_change_shutdown_buttons,
     get_change_volume_buttons,
     get_keyboard_buttons,
-    get_user_buttons,
+    get_user_buttons, get_devices_buttons_async, get_main_menu_buttons,
+    create_device_control_buttons,
 )
 from data import (
     CANCEL_BUTTON_CLICK,
@@ -42,8 +45,13 @@ from data import (
     SUCCESS_TEXT,
     SUCCESS_VOLUME_TEXT,
     VOLUME,
-    VOLUME_BUTTON_CLICK,
+    VOLUME_BUTTON_CLICK, HOME_BUTTON_CLICK, SMART_HOME_MANAGEMENT,
+    LIGHTS_MENU_CLICK, LOADING_LIGHTS_MSG, LIGHT, NO_LIGHTS_MSG,
+    LIGHTS_MENU_TITLE, ERROR_MSG_TEMPLATE, OUTLETS_MENU_CLICK,
+    LOADING_OUTLETS_MSG, OUTLET, NO_OUTLETS_MSG, OUTLETS_MENU_TITLE,
+    BACK_TO_MAIN_CLICK, STATUS_ON, STATUS_OFF, DEVICE_INFO_TEMPLATE,
 )
+
 from keyboard.keyboard import play_pause
 from screen.screen_control import get_brightness, set_brightness
 from system.power_management import (
@@ -51,6 +59,7 @@ from system.power_management import (
     check_shutdown_status,
     set_shutdown_timer,
 )
+from devices import load_devices_with_status, async_load_devices
 from utils.timer import timer
 from utils.utils import finish_time
 from volume.volume_control import get_volume, set_volume
@@ -61,13 +70,13 @@ finish = ""
 def register_handlers(dp):
 
     @dp.message(Command(START_BUTTON))
-    @acsess
+    @access
     async def send_welcome(message: types.Message):
         reply_markup = get_user_buttons()
         await message.reply(START_REPLAY, reply_markup=reply_markup)
 
     @dp.callback_query(lambda c: c.data == VOLUME_BUTTON_CLICK)
-    @acsess
+    @access
     async def handle_button_click(callback_query: types.CallbackQuery):
         volume = get_volume()
         await callback_query.answer(VOLUME)
@@ -78,7 +87,7 @@ def register_handlers(dp):
         )
 
     @dp.callback_query(lambda c: c.data == CANCEL_BUTTON_CLICK)
-    @acsess
+    @access
     async def cancel_button(callback_query: types.CallbackQuery):
         await callback_query.answer(CANCEL_CONFIRM_TEXT)
         await callback_query.message.delete()
@@ -88,7 +97,7 @@ def register_handlers(dp):
         )
 
     @dp.callback_query(lambda c: c.data.startswith(CHANGE_VOLUME))
-    @acsess
+    @access
     async def change_volume(callback_query: types.CallbackQuery):
         volume_level = callback_query.data.split("_")[-1]
         await callback_query.message.delete()
@@ -111,7 +120,7 @@ def register_handlers(dp):
             )
 
     @dp.callback_query(lambda c: c.data == MONITOR_BUTTON_CLICK)
-    @acsess
+    @access
     async def handle_button_click(callback_query: types.CallbackQuery):
         brightness = get_brightness()
         await callback_query.answer(MONITOR)
@@ -123,7 +132,7 @@ def register_handlers(dp):
         )
 
     @dp.callback_query(lambda c: c.data.startswith(CHANGE_BRIGHTNESS))
-    @acsess
+    @access
     async def change_volume(callback_query: types.CallbackQuery):
         brightness_level = callback_query.data.split("_")[-1]
         await callback_query.message.delete()
@@ -148,7 +157,7 @@ def register_handlers(dp):
             )
 
     @dp.callback_query(lambda c: c.data == POWER_BUTTON_CLICK)
-    @acsess
+    @access
     async def handle_button_click(callback_query: types.CallbackQuery):
         shutdown_status = check_shutdown_status()
         await callback_query.answer(POWER)
@@ -170,7 +179,7 @@ def register_handlers(dp):
             )
 
     @dp.callback_query(lambda c: c.data.startswith(CHANGE_SHUTDOWN))
-    @acsess
+    @access
     async def change_shutdown(callback_query: types.CallbackQuery):
         global finish
         shutdown_time = callback_query.data.split("_")[-1]
@@ -194,7 +203,7 @@ def register_handlers(dp):
             )
 
     @dp.callback_query(lambda c: c.data.startswith(CANCEL_SHUTDOWN))
-    @acsess
+    @access
     async def cancel_shutdown(callback_query: types.CallbackQuery):
         await callback_query.message.delete()
         reply_markup = get_user_buttons()
@@ -212,7 +221,7 @@ def register_handlers(dp):
             )
 
     @dp.callback_query(lambda c: c.data.startswith(KEYBOARD_BUTTON_CLICK))
-    @acsess
+    @access
     async def keyboard_button_click(callback_query: types.CallbackQuery):
         await callback_query.message.delete()
         await callback_query.answer(KEYBOARD)
@@ -223,7 +232,7 @@ def register_handlers(dp):
         )
 
     @dp.callback_query(lambda c: c.data.startswith(SPACE_CLICK))
-    @acsess
+    @access
     async def keyboard_click(callback_query: types.CallbackQuery):
         await callback_query.message.delete()
         await callback_query.answer(SPACE_BUTTON_TEXT)
@@ -239,3 +248,170 @@ def register_handlers(dp):
             await callback_query.message.answer(
                 text=FALSE_TEXT, reply_markup=reply_markup
             )
+
+    @dp.callback_query(lambda c: c.data == HOME_BUTTON_CLICK)
+    @access
+    async def show_smart_home_main(callback_query: types.CallbackQuery):
+        await callback_query.message.delete()
+        reply_markup = await get_main_menu_buttons()
+        await callback_query.message.answer(
+            text=SMART_HOME_MANAGEMENT,
+            reply_markup=reply_markup
+        )
+
+    @dp.callback_query(lambda c: c.data == LIGHTS_MENU_CLICK)
+    @access
+    async def show_lights_menu(callback_query: types.CallbackQuery):
+        await callback_query.message.delete()
+        loading_msg = await callback_query.message.answer(
+            LOADING_LIGHTS_MSG)
+        try:
+            devices = await load_devices_with_status()
+            lights = [(d, s) for d, s in devices if d.device_type == LIGHT]
+
+            if not lights:
+                await loading_msg.edit_text(NO_LIGHTS_MSG)
+                await asyncio.sleep(2)
+                await loading_msg.delete()
+                return
+
+            reply_markup = await get_devices_buttons_async(lights)
+            await loading_msg.delete()
+            await callback_query.message.answer(
+                text=LIGHTS_MENU_TITLE,
+                reply_markup=reply_markup
+            )
+        except Exception as e:
+            await loading_msg.edit_text(ERROR_MSG_TEMPLATE.format(error=str(e)))
+            await asyncio.sleep(3)
+            await loading_msg.delete()
+
+    @dp.callback_query(lambda c: c.data == OUTLETS_MENU_CLICK)
+    @access
+    async def show_outlets_menu(callback_query: types.CallbackQuery):
+        await callback_query.message.delete()
+        loading_msg = await callback_query.message.answer(
+            LOADING_OUTLETS_MSG)
+        try:
+            devices = await load_devices_with_status()
+            outlets = [(d, s) for d, s in devices if d.device_type == OUTLET]
+
+            if not outlets:
+                await loading_msg.edit_text(NO_OUTLETS_MSG)
+                await asyncio.sleep(2)
+                await loading_msg.delete()
+                return
+
+            reply_markup = await get_devices_buttons_async(outlets)
+            await loading_msg.delete()
+            await callback_query.message.answer(
+                text=OUTLETS_MENU_TITLE,
+                reply_markup=reply_markup
+            )
+        except Exception as e:
+            await loading_msg.edit_text(ERROR_MSG_TEMPLATE.format(error=str(e)))
+            await asyncio.sleep(3)
+            await loading_msg.delete()
+
+    @dp.callback_query(lambda c: c.data == BACK_TO_MAIN_CLICK)
+    @access
+    async def handle_back_to_main(callback_query: types.CallbackQuery):
+        await callback_query.message.delete()
+        reply_markup = await get_main_menu_buttons()
+        await callback_query.message.answer(
+            text=SMART_HOME_MANAGEMENT,
+            reply_markup=reply_markup
+        )
+
+    @dp.callback_query(lambda c: c.data.startswith("DEVICE_TOGGLE_"))
+    @access
+    async def handle_device_toggle(callback_query: types.CallbackQuery):
+        parts = callback_query.data.split("_")
+        device_id = parts[2]
+        switch_num = parts[3]
+
+        device = next((d for d in await async_load_devices() if d.device_id == device_id),
+                      None)
+        if not device:
+            await callback_query.answer("Устройство не найдено")
+            return
+
+        try:
+            if switch_num == '1':
+                await device.turn_off() if await device.is_on() else await device.turn_on()
+            elif switch_num == '2':
+                # Для второго переключателя используем прямое управление DPS
+                current = (await device.status()).get('dps', {}).get('2', False)
+                await device._async_execute(
+                    lambda: device._device.set_value(2, not current))
+
+
+            # Получаем обновлённые данные устройства
+            device_info = await device.get_device_info()
+            status = STATUS_ON if device_info['switches'][
+                'switch_1'] else STATUS_OFF
+
+            # Формируем новое сообщение
+            message = DEVICE_INFO_TEMPLATE.format(
+                name=device_info['name'],
+                status=status,
+                additional_info=f"Переключатель 2: {'Вкл' if device_info['switches']['switch_2'] else 'Выкл'}\n"
+                if device_info['has_switch_2'] else ""
+            )
+
+            # Обновляем клавиатуру
+            reply_markup = create_device_control_buttons(device_info)
+
+            # Редактируем сообщение
+            await callback_query.message.edit_text(
+                text=message,
+                reply_markup=reply_markup
+            )
+            await callback_query.answer("Состояние изменено")
+        except Exception as e:
+            await callback_query.answer(f"Ошибка: {str(e)}")
+
+
+    @dp.callback_query(lambda c: c.data.startswith("DEVICE_"))
+    @access
+    async def handle_device_control(
+            callback_query: types.CallbackQuery,
+            device_id: str = None
+    ):
+        if not device_id:
+            device_id = callback_query.data.split("_")[-1]
+
+        # Находим устройство
+        device = next((d for d in await async_load_devices() if d.device_id == device_id),
+                      None)
+        if not device:
+            await callback_query.answer("Устройство не найдено")
+            return
+
+        # Получаем информацию об устройстве
+        device_info = await device.get_device_info()
+        if not device_info:
+            await callback_query.answer("Не удалось получить статус устройства")
+            return
+
+        # Формируем сообщение
+        status = STATUS_ON if device_info['switches']['switch_1'] else STATUS_OFF
+        additional_info = ""
+        if device_info['has_switch_2']:
+            additional_info += f"Дополнительный: {STATUS_ON if device_info['switches']['switch_2'] else STATUS_OFF}\n"
+
+        message = DEVICE_INFO_TEMPLATE.format(
+            name=device_info['name'],
+            status=status,
+            additional_info=additional_info
+        )
+
+        # Создаем клавиатуру управления
+        reply_markup = create_device_control_buttons(device_info)
+
+        await callback_query.message.edit_text(
+            text=message,
+            reply_markup=reply_markup
+        )
+        await callback_query.answer()
+
