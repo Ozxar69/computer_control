@@ -136,6 +136,28 @@ ENV/
 env.bak/
 venv.bak/
 
+# IDE
+.idea/
+
+# Local scripts and shortcuts
+run.bat
+run.vbs
+stop.vbs
+*.lnk
+
+# Fluent Bit (replaced by sqelf)
+fluent-bit/
+
+# Old Windows Docker image
+Dockerfile
+
+# Tuya device snapshot
+snapshot.json
+
+# Untracked keyboard dev scripts
+keyboard/browser.py
+keyboard/control.py
+
 # Spyder project settings
 .spyderproject
 .spyproject
