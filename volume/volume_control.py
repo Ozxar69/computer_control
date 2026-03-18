@@ -3,8 +3,6 @@ from ctypes import POINTER, cast
 from comtypes import CLSCTX_ALL
 from pycaw.pycaw import AudioUtilities, IAudioEndpointVolume
 
-from data import PERCENT
-
 # Получаем устройство вывода звука
 devices = AudioUtilities.GetSpeakers()
 interface = devices.Activate(IAudioEndpointVolume._iid_, CLSCTX_ALL, None)
@@ -12,7 +10,7 @@ volume = cast(interface, POINTER(IAudioEndpointVolume))
 
 
 def get_volume():
-    current_volume = str(int(volume.GetMasterVolumeLevelScalar() * PERCENT))
+    current_volume = str(int(volume.GetMasterVolumeLevelScalar() * 100))
     return current_volume
 
 
