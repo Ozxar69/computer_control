@@ -29,8 +29,22 @@ def read_brightness():
 
 @router.post("/")
 def write_brightness(body: BrightnessSetRequest):
-    set_brightness(body.value)
-    brightness = _safe_get_brightness()
-    actual = brightness if brightness != -1 else body.value
-    logger.info("Brightness set to %d%%", actual)
-    return {"success": True, "brightness": actual}
+    requested = body.value
+    try:
+        # Иногда `screen_brightness_control` кидает COM/WMI исключение на внешнем мониторе,
+        # при этом яркость успевает реально поменяться.
+        set_brightness(requested)
+        set_failed = False
+    except Exception as e:
+        set_failed = True
+        logger.warning("Failed to set brightness via WMI/COM: %s", e)
+
+    # Не вызываем `get_brightness()` в POST, чтобы не зависеть от скорости/стабильности WMI.
+    # Бот и так показывает "requested" значение, а физическое изменение яркости происходит уже в момент set.
+    logger.info(
+        "Brightness set to %d%% (requested=%d%%, set_failed=%s)",
+        requested,
+        requested,
+        set_failed,
+    )
+    return {"success": not set_failed, "brightness": requested}

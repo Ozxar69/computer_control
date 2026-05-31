@@ -6,6 +6,7 @@ PERCENT = 100
 
 CHANGE_TO_VOLUME = (
     "Меню управления громкостью\n\n"
+    "Устройство - {device}\n"
     "Громкость сейчас: {volume}%\n\n"
     "Если хочешь изменить, выбери значение\n"
 )
@@ -15,6 +16,7 @@ CANCEL_BUTTON_CLICK = "cancel"
 CANCEL_CONFIRM_TEXT = "Хорошо, операция отменена"
 
 CHANGE_VOLUME = "change_volume_"
+SWITCH_OUTPUT_DEVICE = "sod_"
 MUTE_VOLUME_TEXT = "Выключить звук"
 
 SUCCESS_TEXT = (
@@ -24,6 +26,12 @@ SUCCESS_TEXT = (
 )
 SUCCESS_VOLUME_TEXT = "Уровень громкости изменен на: {volume}%"
 FALSE_TEXT = "Произошла ошибка. Не удалось выполнить операцию"
+
+PC_OFFLINE_ALERT = "Компьютер выключен или недоступен. Включите ПК."
+PC_OFFLINE_TEXT = (
+    "⚠️ Компьютер сейчас недоступен.\n\n"
+    "Включите ПК — управление заработает автоматически."
+)
 
 MONITOR = "🖥 Экран"
 MONITOR_BUTTON_CLICK = "monitor"
@@ -84,52 +92,6 @@ CHANGE_TO_KEYBOARD = (
     "Если активно видео, то пробелом можно нажать на паузу или возобновить его"
 )
 
-HOME_BUTTON_CLICK = "HOME_CLICK"
-HOME_BUTTON = "🏠 Дом"
-SMART_HOME_MANAGEMENT = "Главное меню управления устройствами\n\nВыбери категорию:"
-LIGHTS_MENU_TITLE = "💡 Управление освещением:"
-OUTLETS_MENU_TITLE = "🔌 Управление розетками:"
-LOADING_LIGHTS_MSG = "🔍 Загружаю список света..."
-LOADING_OUTLETS_MSG = "🔍 Загружаю список розеток..."
-NO_LIGHTS_MSG = "⚠️ Нет доступных устройств освещения"
-NO_OUTLETS_MSG = "⚠️ Нет доступных розеток"
-ERROR_MSG_TEMPLATE = "⚠️ Ошибка: {error}"
-
-HOME_BUTTON_TEXT = "🏠 Дом"
-LIGHTS_BUTTON_TEXT = "💡 Свет"
-OUTLETS_BUTTON_TEXT = "🔌 Розетки"
-BACK_BUTTON_TEXT = "🔙 Назад"
-ONLINE_ICON = "🟢"
-OFFLINE_ICON = "🔴"
-DEVICE_BUTTON_TEXT = "{status} {name}"
-
-LIGHTS_MENU_CLICK = "LIGHTS_MENU"
-OUTLETS_MENU_CLICK = "OUTLETS_MENU"
-BACK_TO_MAIN_CLICK = "SMART_HOME_MAIN"
-DEVICE_CLICK_PREFIX = "DEVICE_"
-LIGHT = "light"
-OUTLET = "outlet"
-
-DEVICE_INFO_TEMPLATE = """{name}
-Текущее состояние:
-
-Основной переключатель: {status}
-{additional_info}"""
-
-STATUS_ON = "Включено ✅"
-STATUS_OFF = "Выключено ❌"
-
-TURN_ON_TEXT = "🔘 Включить"
-TURN_OFF_TEXT = "🔘 Выключить"
-BACK_TO_DEVICES_TEXT = "⬅️ К списку устройств"
-
-DEVICE_STATUS_HEADER = "💡 {name}\n━━━━━━━━━━━━"
-MAIN_SWITCH_STATUS = "🔘 Основной: {status}"
-EXTRA_SWITCH_STATUS = "🔘 Дополнительный: {status}"
-
-MAIN_SWITCH_BUTTON = "🔄 Основной: {state}"
-EXTRA_SWITCH_BUTTON = "🔄 Дополнительный: {state}"
-
 TELEGRAM_BOT_TOKEN = "TELEGRAM_BOT_TOKEN"
 ADMIN_IDS = "ADMIN_IDS"
 ACCESS_DENIED = "Access denied."
@@ -139,6 +101,8 @@ LOG_START_COMMAND = "Start command from user %d"
 LOG_VOLUME_GET_ERROR = "Failed to get volume from API: %s"
 LOG_VOLUME_SET = "Volume set to %d%% by user %d"
 LOG_VOLUME_SET_ERROR = "Failed to set volume: %s"
+LOG_VOLUME_SWITCH = "Output device switched to %s by user %d"
+LOG_VOLUME_SWITCH_ERROR = "Failed to switch output device: %s"
 LOG_BRIGHTNESS_GET_ERROR = "Failed to get brightness from API: %s"
 LOG_BRIGHTNESS_SET = "Brightness set to %d%% by user %d"
 LOG_BRIGHTNESS_SET_ERROR = "Failed to set brightness: %s"
@@ -149,7 +113,4 @@ LOG_SHUTDOWN_CANCEL = "Shutdown cancelled by user %d"
 LOG_SHUTDOWN_CANCEL_ERROR = "Failed to cancel shutdown: %s"
 LOG_PLAY_PAUSE = "Play/Pause by user %d"
 LOG_PLAY_PAUSE_ERROR = "Failed to trigger play/pause: %s"
-LOG_LIGHTS_LOAD_ERROR = "Failed to load lights: %s"
-LOG_OUTLETS_LOAD_ERROR = "Failed to load outlets: %s"
-LOG_DEVICE_TOGGLE_ERROR = "Device toggle error for %s: %s"
-LOG_DEVICE_INFO_ERROR = "Device info error for %s: %s"
+LOG_API_OFFLINE = "API offline, request rejected for user %d"

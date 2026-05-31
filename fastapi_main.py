@@ -110,6 +110,11 @@ app.include_router(power_router, prefix="/power", tags=["power"])
 app.include_router(home_router, prefix="/home", tags=["home"])
 
 
+@app.get("/health")
+async def health():
+    return {"status": "ok"}
+
+
 if __name__ == "__main__":
     _port = os.getenv("FASTAPI_PORT")
     if not _port:

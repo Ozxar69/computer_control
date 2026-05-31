@@ -1,24 +1,20 @@
-import asyncio
 import logging
 
 from aiogram import types
 from aiogram.filters import Command
 
 from admin import access
+from availability import require_api
 from bot.buttons import (
-    create_device_control_buttons,
     get_cancel_shutdown_buttons,
     get_change_brightness_buttons,
     get_change_shutdown_buttons,
     get_change_volume_buttons,
-    get_devices_buttons_from_api,
     get_keyboard_buttons,
-    get_main_menu_buttons,
     get_user_buttons,
 )
-from client import api_delete, api_get, api_post
+from client import api_delete, api_get, api_post, is_api_available
 from data import (
-    BACK_TO_MAIN_CLICK,
     CANCEL_BUTTON_CLICK,
     CANCEL_CONFIRM_TEXT,
     CANCEL_SHUTDOWN,
@@ -30,23 +26,12 @@ from data import (
     CHANGE_TO_POWER_TIMER,
     CHANGE_TO_VOLUME,
     CHANGE_VOLUME,
-    DEVICE_INFO_TEMPLATE,
-    ERROR_MSG_TEMPLATE,
     FALSE_TEXT,
     KEYBOARD,
     KEYBOARD_BUTTON_CLICK,
-    LIGHT,
-    LIGHTS_MENU_CLICK,
-    LIGHTS_MENU_TITLE,
-    LOADING_LIGHTS_MSG,
-    LOADING_OUTLETS_MSG,
     LOG_BRIGHTNESS_GET_ERROR,
     LOG_BRIGHTNESS_SET,
     LOG_BRIGHTNESS_SET_ERROR,
-    LOG_DEVICE_INFO_ERROR,
-    LOG_DEVICE_TOGGLE_ERROR,
-    LOG_LIGHTS_LOAD_ERROR,
-    LOG_OUTLETS_LOAD_ERROR,
     LOG_PLAY_PAUSE,
     LOG_PLAY_PAUSE_ERROR,
     LOG_POWER_GET_ERROR,
@@ -60,21 +45,12 @@ from data import (
     LOG_VOLUME_SET_ERROR,
     MONITOR,
     MONITOR_BUTTON_CLICK,
-    NO_LIGHTS_MSG,
-    NO_OUTLETS_MSG,
-    OUTLET,
-    OUTLETS_MENU_CLICK,
-    OUTLETS_MENU_TITLE,
     POWER,
     POWER_BUTTON_CLICK,
-    SMART_HOME_MANAGEMENT,
-    HOME_BUTTON_CLICK,
     SPACE_BUTTON_TEXT,
     SPACE_CLICK,
     START_BUTTON,
     START_REPLAY,
-    STATUS_OFF,
-    STATUS_ON,
     SUCCESS_BRIGHTNESS_MESSAGE,
     SUCCESS_BRIGHTNESS_TEXT,
     SUCCESS_CANCEL_SHUTDOWN_MESSAGE,
@@ -83,41 +59,85 @@ from data import (
     SUCCESS_SHUTDOWN_TEXT,
     SUCCESS_TEXT,
     SUCCESS_VOLUME_TEXT,
+    SWITCH_OUTPUT_DEVICE,
     VOLUME,
     VOLUME_BUTTON_CLICK,
+    LOG_VOLUME_SWITCH,
+    LOG_VOLUME_SWITCH_ERROR,
+    PC_OFFLINE_TEXT,
 )
 
 logger = logging.getLogger(__name__)
 
 
 def register_handlers(dp):
+    async def show_volume_menu(callback_query: types.CallbackQuery):
+        try:
+            data = await api_get("/volume")
+            volume = data["volume"]
+            device_name = data.get("device_name", "Unknown device")
+            switch_targets = data.get("switch_targets", [])
+        except Exception as e:
+            logger.error(LOG_VOLUME_GET_ERROR, e)
+            volume = "?"
+            device_name = "Unknown device"
+            switch_targets = []
+        await callback_query.answer(VOLUME)
+        await callback_query.message.delete()
+        await callback_query.message.answer(
+            CHANGE_TO_VOLUME.format(volume=volume, device=device_name),
+            reply_markup=get_change_volume_buttons(switch_targets=switch_targets),
+        )
 
     @dp.message(Command(START_BUTTON))
     @access
     async def send_welcome(message: types.Message):
         logger.info(LOG_START_COMMAND, message.from_user.id)
+        if not await is_api_available():
+            await message.reply(PC_OFFLINE_TEXT)
+            return
         await message.reply(START_REPLAY, reply_markup=get_user_buttons())
 
     # ── VOLUME ──────────────────────────────────────────────────────────────
 
     @dp.callback_query(lambda c: c.data == VOLUME_BUTTON_CLICK)
     @access
+    @require_api
     async def handle_volume_menu(callback_query: types.CallbackQuery):
+        await show_volume_menu(callback_query)
+
+    @dp.callback_query(lambda c: c.data.startswith(SWITCH_OUTPUT_DEVICE))
+    @access
+    @require_api
+    async def switch_output_device(callback_query: types.CallbackQuery):
+        target_index_text = callback_query.data.replace(SWITCH_OUTPUT_DEVICE, "", 1)
         try:
-            data = await api_get("/volume")
-            volume = data["volume"]
+            target_index = int(target_index_text)
+            current_data = await api_get("/volume")
+            switch_targets = current_data.get("switch_targets", [])
+            if target_index < 0 or target_index >= len(switch_targets):
+                await callback_query.answer(FALSE_TEXT)
+                return
+
+            target_device_id = switch_targets[target_index]["id"]
+            data = await api_post(
+                "/volume/switch-output",
+                {"target_device_id": target_device_id},
+            )
+            logger.info(
+                LOG_VOLUME_SWITCH,
+                data.get("device_name", "Unknown device"),
+                callback_query.from_user.id,
+            )
         except Exception as e:
-            logger.error(LOG_VOLUME_GET_ERROR, e)
-            volume = "?"
-        await callback_query.answer(VOLUME)
-        await callback_query.message.delete()
-        await callback_query.message.answer(
-            CHANGE_TO_VOLUME.format(volume=volume),
-            reply_markup=get_change_volume_buttons(),
-        )
+            logger.error(LOG_VOLUME_SWITCH_ERROR, e)
+            await callback_query.answer(FALSE_TEXT)
+            return
+        await show_volume_menu(callback_query)
 
     @dp.callback_query(lambda c: c.data.startswith(CHANGE_VOLUME))
     @access
+    @require_api
     async def change_volume(callback_query: types.CallbackQuery):
         level = int(callback_query.data.split("_")[-1])
         await callback_query.message.delete()
@@ -139,6 +159,7 @@ def register_handlers(dp):
 
     @dp.callback_query(lambda c: c.data == MONITOR_BUTTON_CLICK)
     @access
+    @require_api
     async def handle_brightness_menu(callback_query: types.CallbackQuery):
         try:
             data = await api_get("/brightness")
@@ -155,6 +176,7 @@ def register_handlers(dp):
 
     @dp.callback_query(lambda c: c.data.startswith(CHANGE_BRIGHTNESS))
     @access
+    @require_api
     async def change_brightness(callback_query: types.CallbackQuery):
         level = int(callback_query.data.split("_")[-1])
         await callback_query.message.delete()
@@ -168,7 +190,12 @@ def register_handlers(dp):
                 reply_markup=get_user_buttons(),
             )
         except Exception as e:
-            logger.error(LOG_BRIGHTNESS_SET_ERROR, e)
+            logger.error(
+                "Failed to set brightness: type=%s repr=%r str=%s",
+                type(e).__name__,
+                e,
+                str(e),
+            )
             await callback_query.answer(FALSE_TEXT)
             await callback_query.message.answer(text=FALSE_TEXT, reply_markup=get_user_buttons())
 
@@ -176,6 +203,7 @@ def register_handlers(dp):
 
     @dp.callback_query(lambda c: c.data == POWER_BUTTON_CLICK)
     @access
+    @require_api
     async def handle_power_menu(callback_query: types.CallbackQuery):
         try:
             data = await api_get("/power")
@@ -201,6 +229,7 @@ def register_handlers(dp):
 
     @dp.callback_query(lambda c: c.data.startswith(CHANGE_SHUTDOWN))
     @access
+    @require_api
     async def change_shutdown(callback_query: types.CallbackQuery):
         minutes = int(callback_query.data.split("_")[-1])
         await callback_query.message.delete()
@@ -219,6 +248,7 @@ def register_handlers(dp):
 
     @dp.callback_query(lambda c: c.data.startswith(CANCEL_SHUTDOWN))
     @access
+    @require_api
     async def cancel_shutdown(callback_query: types.CallbackQuery):
         await callback_query.message.delete()
         try:
@@ -247,6 +277,7 @@ def register_handlers(dp):
 
     @dp.callback_query(lambda c: c.data.startswith(SPACE_CLICK))
     @access
+    @require_api
     async def keyboard_click(callback_query: types.CallbackQuery):
         await callback_query.message.delete()
         await callback_query.answer(SPACE_BUTTON_TEXT)
@@ -269,128 +300,3 @@ def register_handlers(dp):
         await callback_query.answer(CANCEL_CONFIRM_TEXT)
         await callback_query.message.delete()
         await callback_query.message.answer(text=START_REPLAY, reply_markup=get_user_buttons())
-
-    # ── SMART HOME ───────────────────────────────────────────────────────────
-
-    @dp.callback_query(lambda c: c.data == HOME_BUTTON_CLICK)
-    @access
-    async def show_smart_home_main(callback_query: types.CallbackQuery):
-        await callback_query.message.delete()
-        await callback_query.message.answer(
-            text=SMART_HOME_MANAGEMENT,
-            reply_markup=await get_main_menu_buttons(),
-        )
-
-    @dp.callback_query(lambda c: c.data == LIGHTS_MENU_CLICK)
-    @access
-    async def show_lights_menu(callback_query: types.CallbackQuery):
-        await callback_query.message.delete()
-        loading_msg = await callback_query.message.answer(LOADING_LIGHTS_MSG)
-        try:
-            devices = await api_get("/home/devices")
-            lights = [d for d in devices if d["type"] == LIGHT]
-            if not lights:
-                await loading_msg.edit_text(NO_LIGHTS_MSG)
-                await asyncio.sleep(2)
-                await loading_msg.delete()
-                return
-            await loading_msg.delete()
-            await callback_query.message.answer(
-                text=LIGHTS_MENU_TITLE,
-                reply_markup=get_devices_buttons_from_api(lights),
-            )
-        except Exception as e:
-            logger.error(LOG_LIGHTS_LOAD_ERROR, e)
-            await loading_msg.edit_text(ERROR_MSG_TEMPLATE.format(error=str(e)))
-            await asyncio.sleep(3)
-            await loading_msg.delete()
-
-    @dp.callback_query(lambda c: c.data == OUTLETS_MENU_CLICK)
-    @access
-    async def show_outlets_menu(callback_query: types.CallbackQuery):
-        await callback_query.message.delete()
-        loading_msg = await callback_query.message.answer(LOADING_OUTLETS_MSG)
-        try:
-            devices = await api_get("/home/devices")
-            outlets = [d for d in devices if d["type"] == OUTLET]
-            if not outlets:
-                await loading_msg.edit_text(NO_OUTLETS_MSG)
-                await asyncio.sleep(2)
-                await loading_msg.delete()
-                return
-            await loading_msg.delete()
-            await callback_query.message.answer(
-                text=OUTLETS_MENU_TITLE,
-                reply_markup=get_devices_buttons_from_api(outlets),
-            )
-        except Exception as e:
-            logger.error(LOG_OUTLETS_LOAD_ERROR, e)
-            await loading_msg.edit_text(ERROR_MSG_TEMPLATE.format(error=str(e)))
-            await asyncio.sleep(3)
-            await loading_msg.delete()
-
-    @dp.callback_query(lambda c: c.data == BACK_TO_MAIN_CLICK)
-    @access
-    async def handle_back_to_main(callback_query: types.CallbackQuery):
-        await callback_query.message.delete()
-        await callback_query.message.answer(
-            text=SMART_HOME_MANAGEMENT,
-            reply_markup=await get_main_menu_buttons(),
-        )
-
-    @dp.callback_query(lambda c: c.data.startswith("DEVICE_TOGGLE_"))
-    @access
-    async def handle_device_toggle(callback_query: types.CallbackQuery):
-        parts = callback_query.data.split("_")
-        device_id = parts[2]
-        switch_num = int(parts[3])
-        try:
-            device_info = await api_post(
-                f"/home/devices/{device_id}/toggle", {"switch": switch_num}
-            )
-            status = STATUS_ON if device_info["switches"]["switch_1"] else STATUS_OFF
-            additional_info = ""
-            if device_info["has_switch_2"]:
-                sw2 = "Вкл" if device_info["switches"]["switch_2"] else "Выкл"
-                additional_info = f"Переключатель 2: {sw2}\n"
-            message = DEVICE_INFO_TEMPLATE.format(
-                name=device_info["name"],
-                status=status,
-                additional_info=additional_info,
-            )
-            await callback_query.message.edit_text(
-                text=message,
-                reply_markup=create_device_control_buttons(device_info),
-            )
-            await callback_query.answer("Состояние изменено")
-        except Exception as e:
-            logger.error(LOG_DEVICE_TOGGLE_ERROR, device_id, e)
-            await callback_query.answer(f"Ошибка: {str(e)}")
-
-    @dp.callback_query(lambda c: c.data.startswith("DEVICE_"))
-    @access
-    async def handle_device_control(callback_query: types.CallbackQuery):
-        device_id = callback_query.data.split("_")[-1]
-        try:
-            device_info = await api_get(f"/home/devices/{device_id}")
-            if not device_info:
-                await callback_query.answer("Не удалось получить статус устройства")
-                return
-            status = STATUS_ON if device_info["switches"]["switch_1"] else STATUS_OFF
-            additional_info = ""
-            if device_info["has_switch_2"]:
-                sw2 = STATUS_ON if device_info["switches"]["switch_2"] else STATUS_OFF
-                additional_info = f"Дополнительный: {sw2}\n"
-            message = DEVICE_INFO_TEMPLATE.format(
-                name=device_info["name"],
-                status=status,
-                additional_info=additional_info,
-            )
-            await callback_query.message.edit_text(
-                text=message,
-                reply_markup=create_device_control_buttons(device_info),
-            )
-            await callback_query.answer()
-        except Exception as e:
-            logger.error(LOG_DEVICE_INFO_ERROR, device_id, e)
-            await callback_query.answer("Устройство не найдено")

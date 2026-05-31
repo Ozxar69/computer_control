@@ -1,8 +1,6 @@
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 
 from data import (
-    BACK_BUTTON_TEXT,
-    BACK_TO_MAIN_CLICK,
     CANCEL_BUTTON_CLICK,
     CANCEL_BUTTON_TEXT,
     CANCEL_SHUTDOWN,
@@ -10,29 +8,18 @@ from data import (
     CHANGE_BRIGHTNESS,
     CHANGE_SHUTDOWN,
     CHANGE_VOLUME,
-    DEVICE_BUTTON_TEXT,
-    DEVICE_CLICK_PREFIX,
-    EXTRA_SWITCH_BUTTON,
-    HOME_BUTTON,
-    HOME_BUTTON_CLICK,
     KEYBOARD,
     KEYBOARD_BUTTON_CLICK,
-    LIGHTS_BUTTON_TEXT,
-    LIGHTS_MENU_CLICK,
-    MAIN_SWITCH_BUTTON,
     MONITOR,
     MONITOR_BUTTON_CLICK,
     MUTE_VOLUME_TEXT,
     NIGHT_SWITCH_TEXT,
-    OFFLINE_ICON,
-    ONLINE_ICON,
-    OUTLETS_BUTTON_TEXT,
-    OUTLETS_MENU_CLICK,
     POWER,
     POWER_BUTTON_CLICK,
     SHUTDOWN_NOW,
     SPACE_BUTTON_TEXT,
     SPACE_CLICK,
+    SWITCH_OUTPUT_DEVICE,
     VOLUME,
     VOLUME_BUTTON_CLICK,
 )
@@ -43,9 +30,6 @@ cancel_button = [
 cancel_shutdown = [
     InlineKeyboardButton(text=CANCEL_SHUTDOWN_TEXT, callback_data=CANCEL_SHUTDOWN)
 ]
-back_button = [
-    InlineKeyboardButton(text=BACK_BUTTON_TEXT, callback_data=BACK_TO_MAIN_CLICK)
-]
 
 
 def get_user_buttons():
@@ -54,12 +38,11 @@ def get_user_buttons():
         [InlineKeyboardButton(text=MONITOR, callback_data=MONITOR_BUTTON_CLICK)],
         [InlineKeyboardButton(text=POWER, callback_data=POWER_BUTTON_CLICK)],
         [InlineKeyboardButton(text=KEYBOARD, callback_data=KEYBOARD_BUTTON_CLICK)],
-        [InlineKeyboardButton(text=HOME_BUTTON, callback_data=HOME_BUTTON_CLICK)],
     ]
     return InlineKeyboardMarkup(inline_keyboard=buttons)
 
 
-def get_change_volume_buttons():
+def get_change_volume_buttons(switch_targets=None):
     first_block = [
         InlineKeyboardButton(text=f"{i}%", callback_data=CHANGE_VOLUME + str(i))
         for i in range(5, 56, 5)
@@ -83,6 +66,20 @@ def get_change_volume_buttons():
         if i + 5 < len(second_block):
             row.append(second_block[i + 5])
         keyboard.append(row)
+    targets = switch_targets or []
+    if len(targets) >= 2:
+        keyboard.append(
+            [
+                InlineKeyboardButton(
+                    text=targets[0]["name"],
+                    callback_data=SWITCH_OUTPUT_DEVICE + "0",
+                ),
+                InlineKeyboardButton(
+                    text=targets[1]["name"],
+                    callback_data=SWITCH_OUTPUT_DEVICE + "1",
+                ),
+            ]
+        )
     keyboard.append(cancel_button)
     return InlineKeyboardMarkup(inline_keyboard=keyboard)
 
@@ -136,54 +133,3 @@ def get_keyboard_buttons():
             cancel_button,
         ]
     )
-
-
-async def get_main_menu_buttons():
-    buttons = [
-        [InlineKeyboardButton(text=LIGHTS_BUTTON_TEXT, callback_data=LIGHTS_MENU_CLICK)],
-        [InlineKeyboardButton(text=OUTLETS_BUTTON_TEXT, callback_data=OUTLETS_MENU_CLICK)],
-        cancel_button,
-    ]
-    return InlineKeyboardMarkup(inline_keyboard=buttons)
-
-
-def get_devices_buttons_from_api(devices: list) -> InlineKeyboardMarkup:
-    """Кнопки для списка устройств из API-ответа (list of dicts)."""
-    buttons = []
-    for device in devices:
-        status_icon = ONLINE_ICON if device["is_online"] else OFFLINE_ICON
-        buttons.append([
-            InlineKeyboardButton(
-                text=DEVICE_BUTTON_TEXT.format(status=status_icon, name=device["name"]),
-                callback_data=f"{DEVICE_CLICK_PREFIX}{device['id']}",
-            )
-        ])
-    buttons.append(back_button)
-    return InlineKeyboardMarkup(inline_keyboard=buttons)
-
-
-def create_device_control_buttons(device_info: dict) -> InlineKeyboardMarkup:
-    buttons = []
-
-    main_state = "Выключить" if device_info["switches"]["switch_1"] else "Включить"
-    buttons.append([
-        InlineKeyboardButton(
-            text=MAIN_SWITCH_BUTTON.format(state=main_state),
-            callback_data=f"DEVICE_TOGGLE_{device_info['device_id']}_1",
-        )
-    ])
-
-    if device_info["has_switch_2"]:
-        extra_state = "Выключить" if device_info["switches"]["switch_2"] else "Включить"
-        buttons.append([
-            InlineKeyboardButton(
-                text=EXTRA_SWITCH_BUTTON.format(state=extra_state),
-                callback_data=f"DEVICE_TOGGLE_{device_info['device_id']}_2",
-            )
-        ])
-
-    buttons.append([
-        InlineKeyboardButton(text="↩️ Назад", callback_data=HOME_BUTTON_CLICK)
-    ])
-
-    return InlineKeyboardMarkup(inline_keyboard=buttons)

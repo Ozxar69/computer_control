@@ -7,5 +7,7 @@ def get_brightness():
 
 
 def set_brightness(brightness):
-    sbc.fade_brightness(brightness, interval=0.1)
+    # `fade_brightness` может занять > 5 секунд при большой разнице значений.
+    # Сделаем плавное изменение быстрее, чтобы HTTP-запрос не падал по timeout.
+    sbc.fade_brightness(brightness, interval=0.01)
     return True

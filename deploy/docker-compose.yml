@@ -1,0 +1,39 @@
+# Запуск на удалённом VPS.
+# Логи бота: GELF → sqelf (VPS) → Seq на домашнем Windows через Tailscale.
+#
+# На сервере: deploy/.env + этот файл.
+#
+# Сборка и публикация (Windows):
+#   cd /d/Dev/computer_control
+#   docker build -t ozxar/computer-control-bot:latest ./telegram_bot
+#   docker push ozxar/computer-control-bot:latest
+#
+# На сервере:
+#   cd /opt/computer_control/deploy
+#   docker compose pull
+#   docker compose up -d
+
+services:
+  telegram_bot:
+    image: ozxar/computer-control-bot:latest
+    container_name: cc_telegram_bot
+    restart: unless-stopped
+    env_file:
+      - .env
+    depends_on:
+      sqelf:
+        condition: service_started
+    logging:
+      driver: gelf
+      options:
+        gelf-address: "udp://127.0.0.1:12201"
+        tag: "cc.telegram_bot"
+
+  sqelf:
+    image: datalust/sqelf:latest
+    container_name: cc_sqelf
+    restart: unless-stopped
+    environment:
+      - SEQ_ADDRESS=${SEQ_ADDRESS}
+    ports:
+      - "12201:12201/udp"

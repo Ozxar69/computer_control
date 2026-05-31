@@ -1,3 +1,4 @@
+import asyncio
 import logging
 
 from fastapi import APIRouter, HTTPException
@@ -54,8 +55,18 @@ async def toggle_device(device_id: str, body: ToggleRequest):
         else:
             await device.turn_on()
     elif body.switch == 2:
-        current = (await device.status()).get("dps", {}).get("2", False)
-        await device._async_execute(lambda: device._device.set_value(2, not current))
+        status = await device.status()
+        dps = status.get("dps", {}) if isinstance(status, dict) else {}
+        # tinytuya может отдавать ключи как int (2) или как str ('2')
+        current_val = dps.get("2", dps.get(2, False))
+        current = bool(current_val)
+        await device._async_execute(
+            lambda: device._device.set_value(2, not current)
+        )
 
     logger.info("Device toggled: %s switch %d", device.name, body.switch)
+    # Устройства Tuya не всегда моментально отдают обновлённый status.
+    # Дадим им немного времени, иначе бот может показать "старое" состояние
+    # и получить Telegram error "message is not modified".
+    await asyncio.sleep(0.8)
     return await device.get_device_info()
