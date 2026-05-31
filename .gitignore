@@ -136,6 +136,9 @@ ENV/
 env.bak/
 venv.bak/
 
+# Локальные заметки (IP, SSH, не для репозитория)
+vault/
+
 # IDE
 .idea/
 
@@ -147,9 +150,6 @@ stop.vbs
 
 # Fluent Bit (replaced by sqelf)
 fluent-bit/
-
-# Old Windows Docker image
-Dockerfile
 
 # Tuya device snapshot
 snapshot.json
